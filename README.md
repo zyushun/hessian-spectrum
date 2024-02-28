@@ -1,9 +1,9 @@
 # Why Transformers Need Adam: A Hessian Perspective
-This repository contains PyTorch implementations of blockwise and full Hessian spectrum estimation of large-scale neural nets via the Stochastic Lanscoz Quadrature method.  Check out more descriptions in the paper https://arxiv.org/abs/2402.16788.
+This repository contains PyTorch implementations of blockwise and full Hessian spectrum estimation of large-scale neural nets via the Stochastic Lanscoz Quadrature method.  Check out more descriptions in our paper https://arxiv.org/abs/2402.16788.
 
 ## How to use 
 
-Our code for spectrum estimation could be easily plugged into most public implementations for neural-net training. Here we provide two examples.
+Here we provide two examples for Hessian spectrum estimation. One for various models on ImageNet and one for GPT2 on Openwebtext.
 
 ### For vision models 
 
@@ -35,6 +35,9 @@ Run the code for hessian spectrum estimation.
 bash language_models/run_gpt2.sh
 ```
 
+## Remark
+
+Our code for spectrum estimation could be easily plugged into most public implementations for neural-net training. To assure the accuracy of estimation, please remember to remove all the randomness in the forward and backward passes (e.g., data shuffling and dropout).  Since Flash Attention does not support the calculation of Hessian-vector product, please make sure  all attention blocks are implemented in a naive way (as in the GPT2 example above). See more tips in Appendix C.1 in the paper. 
 
 
 ## Acknowledgements
