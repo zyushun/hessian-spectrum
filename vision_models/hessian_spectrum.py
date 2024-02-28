@@ -169,14 +169,14 @@ class Hessian(object):
                     file.write(str(item) + "\n")
         
 
-    def load_curve(self, layer_by_layer = False, plot_histogram = False):
+    def load_curve(self, layer_by_layer = False):
         if layer_by_layer: 
-            self.load_curve_layer_by_layer(plot_histogram = plot_histogram)
+            self.load_curve_layer_by_layer()
         else: 
-            self.load_curve_full(plot_histogram = plot_histogram)
+            self.load_curve_full()
 
       
-    def load_curve_layer_by_layer(self, plot_histogram = False):
+    def load_curve_layer_by_layer(self):
 
         'load weights and values:'
         file_name = self.file_dir + 'weights_layer.json'
@@ -191,16 +191,6 @@ class Hessian(object):
         values_dic = {key: np.array(value) for key, value in values_dic.items()}
 
 
-        if plot_histogram: 
-            'load true eigen value' 
-            file_name = self.file_dir + 'eigenvalues_layer.json'
-            
-            with open(file_name, 'r') as json_file:
-                eigenvalues_dic = json.load(json_file)
-        
-            param_dict = {}
-            for name, param in self.model.named_parameters():
-                param_dict[name] = torch.flatten(param)
 
 
 
@@ -211,21 +201,10 @@ class Hessian(object):
 
             print('curve',curve)
 
-            if plot_histogram:
-                eigenvalues = eigenvalues_dic[name]
-                true_curve = self.get_true_curve(grid, np.array(eigenvalues))
-                total_error = np.sum(np.abs(np.array(true_curve) - np.array(curve)))*(grid[1] - grid[0])
-                total_para = param_dict[name].size(0)
-
-                print('name=', name, 'total_param', total_para, 'total_error', total_error, 'grid size', grid[1]- grid[0] )
 
             'plot'
             plt.figure()
 
-            if plot_histogram:
-                bins = np.linspace(np.min(eigenvalues), np.max(eigenvalues), self.num_bins).tolist()
-                plt.hist(eigenvalues,  bins=bins, density = True, edgecolor='black', label = 'True spectrum', alpha = 1, log = False)
-                plt.plot(grid, true_curve, label = 'true curve')
 
             plt.plot(grid, curve, label = 'approximated curve', alpha = 0.5)
             plt.xlabel('Eigenvalues')
@@ -239,14 +218,10 @@ class Hessian(object):
 
             'log plot'
             plt.figure()
-            if plot_histogram:
-                bins = np.linspace(np.min(eigenvalues), np.max(eigenvalues), self.num_bins).tolist()
-                plt.hist(eigenvalues,  bins=bins, density = True, edgecolor='black', label = 'True spectrum', alpha = 1, log = True)
-                plt.semilogy(grid, true_curve, label = 'true curve')
             plt.semilogy(grid, curve, label = 'approximated curve', alpha = 0.5)
             plt.xlabel('Eigenvalues')
             plt.ylabel('Frequency (log)')
-            #plt.ylim([0,0.5])
+            plt.ylim([1e-10,1e2])
             #plt.xlim([3, 5])
             plt.legend()
             plt.title(f'model at interation {self.ckpt_iteration}')
@@ -254,7 +229,7 @@ class Hessian(object):
             plt.close()
 
 
-    def load_curve_full(self, plot_histogram = False):    
+    def load_curve_full(self):
         'load curve'
         grid = []
         file_name = self.file_dir + 'grid.txt'
@@ -268,27 +243,8 @@ class Hessian(object):
             for line in file:
                 curve.append(float(line.strip()))  # Use strip() to remove 
 
-
-        if plot_histogram:
-            'load true eigen value' 
-            file_name = self.file_dir + 'eigenvalues.txt'
-            eigenvalues = []
-            with open(file_name, "r") as file:
-                for line in file:
-                    eigenvalues.append(float(line.strip()))  # Use strip() to remove 
-            'get true curve'
-            true_curve = self.get_true_curve(grid, np.array(eigenvalues))
-            total_error = np.sum(np.abs(np.array(true_curve) - np.array(curve)))*(grid[1]- grid[0])
-            # total_error = np.mean(np.abs(np.array(true_curve) - np.array(curve)))
-            print('total_error', total_error, 'grid size', grid[1]- grid[0] )
-
-
         'plot'
         plt.figure()
-        if plot_histogram:
-            bins = np.linspace(np.min(eigenvalues), np.max(eigenvalues), self.num_bins).tolist()
-            plt.hist(eigenvalues,  bins=bins, density = True, edgecolor='black', label = 'True spectrum', alpha = 1, log = False)
-            plt.plot(grid, true_curve, label = 'true curve')
         plt.plot(grid, curve, label = 'approximated curve', alpha = 0.5)
         plt.xlabel('Eigenvalues')
         plt.ylabel('Frequency')
@@ -300,11 +256,6 @@ class Hessian(object):
 
         'log plot'
         plt.figure()
-        if plot_histogram:
-            bins = np.linspace(np.min(eigenvalues), np.max(eigenvalues), self.num_bins).tolist()
-            plt.hist(eigenvalues,  bins=bins, density = True, edgecolor='black', label = 'True spectrum', alpha = 1, log = True)
-            true_curve = self.get_true_curve(grid, np.array(eigenvalues))
-            plt.semilogy(grid, true_curve, label = 'true curve')
         plt.semilogy(grid, curve, label = 'approximated curve', alpha = 0.5)
         plt.xlabel('Eigenvalues')
         plt.ylabel('Frequency (log)')
@@ -563,171 +514,6 @@ class Hessian(object):
         X, Y = X.pin_memory().to(self.device, non_blocking=True), Y.pin_memory().to(self.device, non_blocking=True)
 
         return X, Y
-
-
-
-    def get_full_hessian_image(self):
-        self.model.eval()
-        self.model.zero_grad(set_to_none = True)
-
-        def hessian_calculation(g_tensor, batch_idx):
-            g_tensor = g_tensor.cuda()
-            total_params = g_tensor.size(0)
-            hessian_list = []
-            t_d = time.time()
-            for d in range(total_params):
-                unit_vector = torch.zeros(total_params)
-                unit_vector[d] = 1
-                unit_vector = unit_vector.cuda()
-                l = torch.sum(g_tensor*unit_vector)
-                l.backward(retain_graph= True)
-
-                hessian_row = []
-                for name, param in self.model.named_parameters():
-                    if param.requires_grad:
-                        hessian_row.append(param.grad.double().data.clone())
-                
-                self.model.zero_grad(set_to_none = True)
-                hessian_row = [g.flatten() for g in hessian_row] 
-                hessian_row = [g.cpu() for g in hessian_row]
-                hessian_row = torch.cat(hessian_row)
-                hessian_list.append(hessian_row)
-                if d % 1000 == 0:
-                    print(f'Computing hessian: current batch = {batch_idx}/{self.num_batches}, current row of a hessian: {d}/{total_params}, total time = {time.time()- t_d} ')
-
-            hessian = torch.stack(hessian_list, dim = 1)
-            return hessian
-
-
-
-        full_hessian = 0
-
-        for batch_idx, (inputs, targets) in enumerate(self.train_data):
-            if self.use_minibatch == True and batch_idx == self.gradient_accumulation_steps:
-                break
-
-            X = inputs.cuda()
-            Y = targets.cuda()
-
-            outputs = self.model(X)
-            loss = self.criterion(outputs, Y)
-
-
-            loss.backward(create_graph= True)
-
-            g_list = []
-            for name, param in self.model.named_parameters():
-                if param.requires_grad:
-                    g_list.append(torch.flatten(param.grad.double()))
-
-            g_tensor = torch.cat(g_list, dim = 0)
-            self.model.zero_grad(set_to_none = True)
-            H = hessian_calculation(g_tensor, batch_idx)
-            full_hessian += H
-
-
-        full_hessian = torch.nan_to_num(full_hessian, nan = 0, posinf = 0, neginf = 0 )  # change nan, postive inf , negative inf, to 0
-        t_svd = time.time()
-        print('doing EVD')
- 
-        full_hessian = full_hessian.numpy().astype(np.float64)
-        full_hessian = (full_hessian + full_hessian.T)/2 # make symetric, to avoid numerical issue
-        eigenvalues, _  = np.linalg.eigh(full_hessian)
-        eigenvalues = [eigen.item().real for eigen in eigenvalues]
-
-        file_name = self.file_dir + 'eigenvalues.txt'
-        with open(file_name, "w") as file:
-            for item in eigenvalues:
-                file.write(str(item)+"\n")
-
-        print(f'EVD time = {time.time()- t_svd}')
-
-
-    def get_full_hessian_layer_by_layer_image(self):
-        self.model.eval()
-        self.model.zero_grad(set_to_none = True)
-
-        def hessian_calculation(g_name, g_tensor, batch_idx):
-            g_tensor = g_tensor.cuda()
-            total_params = g_tensor.size(0)
-            hessian_list = []
-            t_d = time.time()
-            for d in range(total_params):
-                unit_vector = torch.zeros(total_params)
-                unit_vector[d] = 1
-                unit_vector = unit_vector.cuda()
-                l = torch.sum(g_tensor*unit_vector)
-                l.backward(retain_graph= True)
-
-                hessian_row = []
-                for name, param in self.model.named_parameters():
-                    if name == g_name:
-                        hessian_row.append(param.grad.double().data.clone())
-                
-                self.model.zero_grad(set_to_none = True)
-                hessian_row = [g.flatten() for g in hessian_row] 
-                hessian_row = [g.cpu() for g in hessian_row]
-                hessian_row = torch.cat(hessian_row)
-                hessian_list.append(hessian_row)
-                if d % 1000 == 0:
-                    print(f'Computing hessian: current batch = {batch_idx}/{self.num_batches}, current row of a hessian: {d}/{total_params}, total time = {time.time()- t_d} ')
-
-            hessian = torch.stack(hessian_list, dim = 1)
-            return hessian
-
-
-
-        full_hessian_dic = {}
-        'initialization'
-        for name, param in self.model.named_parameters():
-            if param.requires_grad:
-                size = torch.flatten(param.data).size(0)
-                full_hessian_dic[name] = torch.zeros(size, size)
-
-        for batch_idx, (inputs, targets) in enumerate(self.train_data):
-            if self.use_minibatch == True and batch_idx == self.gradient_accumulation_steps:
-                break
-
-            X = inputs.cuda()
-            Y = targets.cuda()
-
-       
-            outputs = self.model(X)
-            loss = self.criterion(outputs, Y)
-            loss.backward(create_graph= True)
-
-            g_dic = {}
-            for name, param in self.model.named_parameters():
-                if param.requires_grad:
-                    g_dic[name] = torch.flatten(param.grad.double())
-
-
-            self.model.zero_grad(set_to_none = True)
-
-            for name, g_tensor in g_dic.items():
-                H = hessian_calculation(name, g_tensor, batch_idx)
-                full_hessian_dic[name] += H
-
-        t_svd = time.time()
-        eigenvalues_dic = {}
-        for name, full_hessian in full_hessian_dic.items():
-            full_hessian = torch.nan_to_num(full_hessian, nan = 0, posinf = 0, neginf = 0 )  # change nan, postive inf , negative inf, to 0
-            full_hessian = full_hessian.numpy().astype(np.float64)
-            full_hessian = (full_hessian + full_hessian.T)/2 # make symetric, to avoid numerical issue
-            eigenvalues, _  = np.linalg.eigh(full_hessian)
-            eigenvalues = [eigen.item().real for eigen in eigenvalues]
-            eigenvalues_dic[name] = eigenvalues
-
-        file_name = self.file_dir + 'eigenvalues_layer.json'
-        with open(file_name, 'w') as json_file:
-            json.dump(eigenvalues_dic, json_file)
-
-        print(f'EVD time = {time.time()- t_svd}')
-
-
-
-
-
 
 
     def get_true_curve(self, grid, eigenvalues):

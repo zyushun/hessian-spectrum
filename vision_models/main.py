@@ -288,15 +288,12 @@ def plot_hessian(args, model, train_loader ):
     hessian = hessian_spectrum.Hessian(model = model, ckpt_iteration = load_iter, use_minibatch= args.use_minibatch, gradient_accumulation_steps = gradient_accumulation_steps, train_data = train_loader, batch_size= batch_size,sample_layer = sample_layer, comment = comment)
 
 
-
-    #hessian.get_full_hessian_layer_by_layer_image()
     hessian.get_spectrum(layer_by_layer = True)
-    hessian.load_curve(layer_by_layer = True, plot_histogram= False)
+    hessian.load_curve(layer_by_layer = True)
 
 
-    #hessian.get_full_hessian_image()
     hessian.get_spectrum(layer_by_layer = False)
-    hessian.load_curve(layer_by_layer = False, plot_histogram= False)
+    hessian.load_curve(layer_by_layer = False)
 
 
 

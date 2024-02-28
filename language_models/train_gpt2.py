@@ -75,7 +75,6 @@ min_lr = 6e-5 # minimum learning rate, should be ~= learning_rate/10 per Chinchi
 seed = 1337
 comment = ''
 use_minibatch = True
-plot_histogram = True
 layer_by_layer = False
 flash_attn = False
 sample_layer = []
@@ -294,15 +293,13 @@ def plot_hessian():
     hessian = hessian_spectrum.Hessian(model, ckpt_iteration = load_iter, train_data = train_data, batch_size= batch_size, block_size= block_size,  ctx = ctx, use_minibatch = use_minibatch, gradient_accumulation_steps = gradient_accumulation_steps, device = device, sample_layer = sample_layer, comment = comment)
 
     
-    #plot_histogram = True
-    #hessian.get_full_hessian_layer_by_layer()
+
     hessian.get_spectrum(layer_by_layer = True)
-    hessian.load_curve(layer_by_layer = True, plot_histogram= False)
+    hessian.load_curve(layer_by_layer = True)
 
 
-    #hessian.get_full_hessian()
     hessian.get_spectrum(layer_by_layer = False)
-    hessian.load_curve(layer_by_layer = False, plot_histogram= False)
+    hessian.load_curve(layer_by_layer = False)
 
 
 
