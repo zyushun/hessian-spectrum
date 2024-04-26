@@ -78,7 +78,6 @@ class Hessian(object):
             T_dic = self.tridiagonalize_by_lanzcos_layer_by_layer(k) #returns a dic: {'name': T}
             
             for name, T in T_dic.items():
-                T = np.ones((self.m, self.m))
                 eigenvalues, U  = np.linalg.eigh(T)
                 values_dic[name][k] = eigenvalues.tolist() #array to list
                 weights_dic[name][k] = (U[0]**2).tolist()
