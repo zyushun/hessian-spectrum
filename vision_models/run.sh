@@ -8,7 +8,7 @@ python -um main \
   --wd 1e-4\
   --workers 48\
   --epochs 90\
-  --arch 'vit'\
+  --arch 'vit_base'\
   --opt 'adamw'\
   --seed 32 \
   --batchsize 256\
