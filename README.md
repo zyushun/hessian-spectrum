@@ -17,7 +17,8 @@ conda activate cvmodels
 Run the code for hessian spectrum estimation. 
 
 ```
-bash vision_models/run.sh
+cd vision_models
+bash run.sh
 ```
 
 ### For language models 
@@ -25,14 +26,15 @@ bash vision_models/run.sh
 Set up the Python environment using Anaconda with the provided `language_models/environment.yml` file.
 
 ```
-conda env create -f vision_models/environment.yml
+conda env create -f language_models/environment.yml
 conda activate gpt2
 ```
 
 Run the code for hessian spectrum estimation. 
 
 ```
-bash language_models/run_gpt2.sh
+cd language_models
+bash run_gpt2.sh
 ```
 
 ## Remark

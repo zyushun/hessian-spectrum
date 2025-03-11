@@ -1,11 +1,13 @@
 name: gpt2
 channels:
+  - conda-forge
   - pytorch
   - nvidia
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
   - _openmp_mutex=5.1=1_gnu
+  - algorithms
   - blas=1.0=mkl
   - brotli-python=1.0.9=py310h6a678d5_7
   - bzip2=1.0.8=h7b6447c_0
@@ -30,7 +32,7 @@ dependencies:
   - idna=3.4=py310h06a4308_0
   - intel-openmp=2023.1.0=hdb19cb5_46306
   - jinja2=3.1.2=py310h06a4308_0
-  - jpeg=9b=0
+  - jpeg
   - lame=3.100=h7b6447c_0
   - lcms2=2.12=h3be6417_0
   - ld_impl_linux-64=2.38=h1181459_1
